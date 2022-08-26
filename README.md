@@ -1,6 +1,6 @@
 # ShiftAdd Design Docs
 
-![Alt text](swagger_pic.png "Swagger page")
+![Alt text](./swagger_pic.png "Swagger page")
 
 ## Choice of Frameworks:
 * I used FastAPI because of it's growing popularity, its speed, simplicity and integration with pydantic (coming from Java, I feel that doing proper type validation is super important!)
