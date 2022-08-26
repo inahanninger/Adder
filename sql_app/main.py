@@ -41,7 +41,7 @@ def generate_new_challenge(db: Session = next(get_db())):
     new_challenge = schemas.ChallengeCreate(id=current_challenge_id ,a=a, b=b, time_started=round(time.time(), 2), correct_answer=correct_answer)
     create_new_challenge(new_challenge, db)
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_model=schemas.Challenge)
 async def root(request: Request, db: Session = Depends(get_db)):
     ## Return template
     current_challenge = get_current_challenge(db)
@@ -50,12 +50,12 @@ async def root(request: Request, db: Session = Depends(get_db)):
     # return templates.TemplateResponse(".templates/challenge.html", challenge.dict())
 
 
-@app.post("/challenge", response_model=schemas.Challenge, tags=["Challenges"])
+@app.post("/challenges", response_model=schemas.Challenge, tags=["Challenges"], status_code=201)
 def create_new_challenge(challenge: schemas.ChallengeCreate, db: Session = Depends(get_db)):
     ## Save challenge to db ##
     return crud.create_challenge(db, challenge=challenge)
 
-@app.get("/challenge/{challenge_id}", response_model=schemas.Challenge, tags=["Challenges"])
+@app.get("/challenges/{challenge_id}", response_model=schemas.Challenge, tags=["Challenges"])
 def get_challenge(challenge_id: str, db: Session = Depends(get_db)):
     ## Get challenge by id from db
     db_challenge = crud.get_challenge(db=db, challenge_id=challenge_id)
@@ -63,7 +63,7 @@ def get_challenge(challenge_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Challenge not found")
     return db_challenge 
 
-@app.get("/current-challenge", response_model=schemas.Challenge, tags=["Challenges"])
+@app.get("/challenges/current-challenge", response_model=schemas.Challenge, tags=["Challenges"])
 def get_current_challenge(db: Session = Depends(get_db)):
     ## Get current challenge from db
     db_challenge = crud.get_newest_challenge(db)
@@ -72,8 +72,10 @@ def get_current_challenge(db: Session = Depends(get_db)):
     return db_challenge
 
 
-@app.post("/submit/{challenge_id}/{answer}", response_model=schemas.Submission, tags=["Submissions"])
+@app.post("/submissions/{challenge_id}/{answer}", response_model=schemas.Submission, tags=["Submissions"], status_code=201)
 def submit_challenge(challenge_id: str, answer: int, request: Request, db: Session = Depends(get_db)):
+    ## Create a submission based on the challenge_id and answer inputted
+    ## Only allow submissions that are for the current challenge
     time_now = round(time.time(), 2)
     current_challenge = crud.get_newest_challenge(db)
     if challenge_id != current_challenge.id:
@@ -101,28 +103,28 @@ def get_challenge_submissions(challenge_id:str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Submissions for challenge not found")
     return db_submissions
 
-@app.get("/player/mean-score/{player_ip}", tags=["Statistics"])
+@app.get("/submissions/player/{player_ip}/mean-score", tags=["Statistics"])
 def get_player_mean_score(player_ip:str, db: Session = Depends(get_db)):
     db_submissions = crud.get_player_submissions(db, player_ip)
     if db_submissions is None:
         raise HTTPException(status_code=404, detail="Submission for user not found")
     return utils.get_mean_score(db_submissions)
 
-@app.get("/challenge/mean-score/{challenge_id}", response_class=float, tags=["Statistics"])
+@app.get("/challenges/{challenge_id}/mean-score", tags=["Statistics"])
 def get_challenge_mean_score(challenge_id:str, db: Session = Depends(get_db)):
     db_submissions = crud.get_challenge_submissions(db, challenge_id)
     if (db_submissions is None or len(db_submissions)==0):
         raise HTTPException(status_code=404, detail="Submissions for challenge not found")
     return utils.get_mean_score(db_submissions)
 
-@app.get("/player/challenges-submitted/{player_ip}", response_class=int, tags=["Statistics"])
+@app.get("/submissions/player/{player_ip}/challenges-submitted", tags=["Statistics"])
 def get_number_of_challenges_submitted(player_ip:str, db: Session = Depends(get_db)):
     db_submissions = crud.get_player_submissions(db, player_ip)
     if (db_submissions is None or len(db_submissions)==0):
         raise HTTPException(status_code=404, detail="Submissions for user not found")
     return len(db_submissions)
 
-@app.get("/player/longest-streak/{player_ip}", response_class=int, tags=["Statistics"])
+@app.get("/submissions/player/{player_ip}/longest-streak", tags=["Statistics"])
 def get_longest_streak(player_ip:str, db: Session = Depends(get_db)):
     db_submissions = crud.get_player_submissions(db, player_ip)
     if (db_submissions is None or len(db_submissions)==0):
