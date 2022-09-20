@@ -9,6 +9,8 @@ def get_challenge(db: Session, challenge_id: str):
 def get_newest_challenge(db: Session):
     return db.query(models.Challenge).order_by(models.Challenge.time_started.desc()).first()
 
+def get_recent_challenges(db: Session):
+    return db.query(models.Challenge).order_by(models.Challenge.time_started.desc()).limit(100).all()
 
 def create_challenge(db: Session, challenge: schemas.ChallengeCreate):
     db_challenge = models.Challenge(**challenge.dict())

@@ -50,10 +50,26 @@ async def root(request: Request, db: Session = Depends(get_db)):
     # return templates.TemplateResponse(".templates/challenge.html", challenge.dict())
 
 
-@app.post("/challenges", response_model=schemas.Challenge, tags=["Challenges"], status_code=201)
+@app.post("/challenges", response_model=schemas.Challenge, tags=["Challenges"])
 def create_new_challenge(challenge: schemas.ChallengeCreate, db: Session = Depends(get_db)):
     ## Save challenge to db ##
     return crud.create_challenge(db, challenge=challenge)
+
+@app.get("/challenges")
+def get_all_challenges(db: Session = Depends(get_db)):
+    ## Get 100 most recent challenges
+    db_challenges = crud.get_recent_challenges(db=db)
+    if db_challenges is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    return db_challenges
+
+@app.get("/current-challenge", response_model=schemas.Challenge, tags=["Challenges"])
+def get_current_challenge(db: Session = Depends(get_db)):
+    ## Get current challenge from db
+    db_challenge = crud.get_newest_challenge(db)
+    if db_challenge is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    return db_challenge 
 
 @app.get("/challenges/{challenge_id}", response_model=schemas.Challenge, tags=["Challenges"])
 def get_challenge(challenge_id: str, db: Session = Depends(get_db)):
@@ -62,14 +78,6 @@ def get_challenge(challenge_id: str, db: Session = Depends(get_db)):
     if db_challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
     return db_challenge 
-
-@app.get("/challenges/current-challenge", response_model=schemas.Challenge, tags=["Challenges"])
-def get_current_challenge(db: Session = Depends(get_db)):
-    ## Get current challenge from db
-    db_challenge = crud.get_newest_challenge(db)
-    if db_challenge is None:
-        raise HTTPException(status_code=404, detail="Challenge not found")
-    return db_challenge
 
 
 @app.post("/submissions/{challenge_id}/{answer}", response_model=schemas.Submission, tags=["Submissions"], status_code=201)

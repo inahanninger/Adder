@@ -8,7 +8,7 @@ def get_score(answer, correct_answer, time_submitted, time_started):
         return -1
 
 def get_mean_score(submissions):
-    score_list = [i["score"] for i in submissions]
+    score_list = [i.score for i in submissions]
     sum = 0
     for submission in score_list:
         sum += submission
@@ -18,7 +18,7 @@ def get_longest_streak(submissions):
     streaks = []
     current_streak = 0
     for submission in submissions:
-        if submission["score"] != -1:
+        if submission.score != -1:
             current_streak += 1
         else:
             streaks.append(current_streak)
