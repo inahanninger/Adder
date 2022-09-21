@@ -31,3 +31,6 @@ def get_player_submissions(db: Session, player_ip:str, skip: int=0, limit: int=1
 
 def get_challenge_submissions(db: Session, challenge_id: str, skip: int=0, limit: int=100):
     return db.query(models.Submission).filter(models.Submission.challenge_id == challenge_id).offset(skip).limit(limit).all()
+
+def get_player_latest_submission(db: Session, player_ip:str):
+    return db.query(models.Submission).filter(models.Submission.player_ip == player_ip).order_by(models.Submission.time_submitted.desc()).first()

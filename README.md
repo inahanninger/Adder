@@ -1,5 +1,5 @@
 # ShiftAdd Design Docs
-
+![Alt text](./htmlTemplate.png "UI")
 ![Alt text](./swagger_page.png "Swagger page")
 
 ## Choice of Frameworks:
@@ -19,7 +19,7 @@
   *   Idempotency (multiple identical requests have the same effect as a single call)
   *   Being resource-based and manipulating these resources using representations. With this meaning we should model objects such that the request and response objects are the same for a POST call for example.
   *   Following conventions of URI path naming. For example, using nouns instead of verbs, using plural for collections or array properties
-* Some of these APIs don't follow this perfectly - for example, we should disregard the root method, "/", since this is clearly not idempotent and I initially used this trying to test out the HTML Response template. Also, GET "/challenges/current-challenge" also isn't idempotent as this changes after each new challenge is generated. This could be improved potentially by replacing this call instead with "/challenges/{challenge_id}" and use a global variable to keep track of the current challenge_id. However, I decided against this out of the instinct to avoid global variables (risks of unforeseen side effects).
+* One alternative to the GET "/current-challenge" API is to replace this call with "/challenges/{challenge_id}" and use a global variable to keep track of the current challenge_id. However, I decided against this out of the instinct to avoid global variables (risks of unforeseen side effects).
 * I did try to organize the API paths such that endpoints sharing the same resource are preceded with "/challenges", "/submissions" But note that for the swagger page I thought to organize them slightly differently e.g. "Statistics" would be all the stats related endpoints, which feels a bit of a clearer semantic distinction in the usage.
 
 
@@ -32,6 +32,4 @@
 
 ## Future improvements:
 
-* I wanted to get the root call to return a html response template (using Jinja2) so I could display some html of the math problem and possibly allow the user to submit via that UI... to start creating some of the front end but I ran out of time to be able to get that working properly
 * After some extra consideration, it might have been better to design the database and data models more centered around "Player" objects, rather than "Submission", i.e. have the db store players and then use a PUT call to update the player entry with a new submission/score with every challenge, rather than storing submissions only. This would make retrieving statistics for users a lot more efficient since we would just need to query for the player_id as opposed to filtering the submissions data for all with the specific player_id.
-* I didn't finish adding all tests for each API, and if I had more time would finish that off!

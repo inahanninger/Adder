@@ -1,15 +1,18 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, status, Form, Depends, HTTPException
 from fastapi_utils.tasks import repeat_every
 from random import randint
 import uuid
 import time
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from fastapi.staticfiles import StaticFiles
 
 from . import crud, models, schemas, utils
 from .database import SessionLocal, engine
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -20,7 +23,8 @@ tags_metadata = [
 ]
 
 app = FastAPI(title= "ShiftAdd", openapi_tags=tags_metadata)
-# templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'templates')))
+app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, 'static'))), name="static")
 
 # Dependency
 def get_db():
@@ -41,14 +45,28 @@ def generate_new_challenge(db: Session = next(get_db())):
     new_challenge = schemas.ChallengeCreate(id=current_challenge_id ,a=a, b=b, time_started=round(time.time(), 2), correct_answer=correct_answer)
     create_new_challenge(new_challenge, db)
 
-@app.get("/", response_model=schemas.Challenge)
+@app.get("/", response_class = HTMLResponse)
 async def root(request: Request, db: Session = Depends(get_db)):
     ## Return template
-    current_challenge = get_current_challenge(db)
+    player_ip = request.client.host
+    page_data = get_current_challenge(db).__dict__
+    page_data["request"] = request
+    page_data["challenges_submitted"] = get_number_of_challenges_submitted(player_ip,db)
+    page_data["mean_score"] = get_player_mean_score(player_ip, db)
+    page_data["longest_streak"] = get_longest_streak(player_ip, db)
+    latest_submission = get_last_submission(player_ip, db)
+    page_data["score"] = latest_submission.score
+    page_data["answer"] = latest_submission.answer
 
-    return current_challenge
-    # return templates.TemplateResponse(".templates/challenge.html", challenge.dict())
+    # return current_challenge
+    return templates.TemplateResponse("index.html", page_data)
 
+@app.post("/", response_class = HTMLResponse)
+async def root_post(request: Request, challenge_id: str = Form(...), answer: str = Form(...), db: Session = Depends(get_db)):
+    ## Return template
+    submit_challenge(challenge_id, int(answer), request, db)
+
+    return RedirectResponse(url=app.url_path_for("root"), status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/challenges", response_model=schemas.Challenge, tags=["Challenges"])
 def create_new_challenge(challenge: schemas.ChallengeCreate, db: Session = Depends(get_db)):
@@ -101,6 +119,13 @@ def submit_challenge(challenge_id: str, answer: int, request: Request, db: Sessi
 def get_player_submissions(player_ip:str, db: Session = Depends(get_db)):
     db_submissions = crud.get_player_submissions(db, player_ip)
     if (db_submissions is None or len(db_submissions)==0):
+        raise HTTPException(status_code=404, detail="Submissions for user not found")
+    return db_submissions
+
+@app.get("/submissions/player/{player_ip}/latest", tags=["Submissions"])
+def get_last_submission(player_ip:str, db: Session = Depends(get_db)):
+    db_submissions = crud.get_player_latest_submission(db, player_ip)
+    if (db_submissions is None):
         raise HTTPException(status_code=404, detail="Submissions for user not found")
     return db_submissions
 
