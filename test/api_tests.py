@@ -1,5 +1,6 @@
 from cgitb import text
 import time
+import os
 from starlette.testclient import TestClient
 import json
 from sqlalchemy import create_engine
@@ -7,6 +8,9 @@ from sqlalchemy.orm import sessionmaker
 
 from sql_app.main import app, get_db
 from sql_app.database import Base
+
+if os.path.exists("./test.db"):
+    os.remove("./test.db")
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
@@ -127,16 +131,36 @@ def test_get_player_submissions():
     player_data = player_response.json()
     assert len(player_data) == 2
 
+    ## Test that /challenges-submitted endpoint returns successfully too
     player_ip = "testclient"
     player_response = client.get(f"/submissions/player/{player_ip}/challenges-submitted")
     assert player_response.status_code == 200, player_response.text
     player_data = player_response.json()
     assert player_data == 2
 
-def test_mean_score():
+def test_get_player_mean_score():
     player_ip = "testclient"
     player_response = client.get(f"/submissions/player/{player_ip}/mean-score")
     assert player_response.status_code == 200, player_response.text
     player_data = player_response.json()
-    assert player_data == 14.495000004768372
+    assert player_data == 14.49
 
+def test_longest_streak():
+    player_ip = "testclient"
+    player_response = client.get(f"/submissions/player/{player_ip}/longest-streak")
+    assert player_response.status_code == 200, player_response.text
+    player_data = player_response.json()
+    assert player_data == 1
+
+def test_get_all_challenges():
+    response = client.get("/challenges")
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert len(data) == 3
+
+def test_get_challenge_mean_score():
+    challenge_id = "fbdbeafc72df4cf39ffa0d7d5d39ea87"
+    response = client.get(f"/challenges/{challenge_id}/mean-score")
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data == 29.98

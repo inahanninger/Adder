@@ -55,7 +55,7 @@ def create_new_challenge(challenge: schemas.ChallengeCreate, db: Session = Depen
     ## Save challenge to db ##
     return crud.create_challenge(db, challenge=challenge)
 
-@app.get("/challenges")
+@app.get("/challenges", tags=["Challenges"])
 def get_all_challenges(db: Session = Depends(get_db)):
     ## Get 100 most recent challenges
     db_challenges = crud.get_recent_challenges(db=db)
