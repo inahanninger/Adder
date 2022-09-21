@@ -108,6 +108,9 @@ def submit_challenge(challenge_id: str, answer: int, request: Request, db: Sessi
         raise HTTPException(status_code=400, detail="Submission is not for current challenge")
 
     player_ip = request.client.host
+    last_submission = get_last_submission(player_ip, db)
+    if (last_submission != None and last_submission.challenge_id == challenge_id):
+        raise HTTPException(status_code=400, detail="Player has already submitted for this challenge")
     submission_id = uuid.uuid1().hex
 
     score = utils.get_score(answer, current_challenge.correct_answer, time_now, current_challenge.time_started)
@@ -125,8 +128,6 @@ def get_player_submissions(player_ip:str, db: Session = Depends(get_db)):
 @app.get("/submissions/player/{player_ip}/latest", tags=["Submissions"])
 def get_last_submission(player_ip:str, db: Session = Depends(get_db)):
     db_submissions = crud.get_player_latest_submission(db, player_ip)
-    if (db_submissions is None):
-        raise HTTPException(status_code=404, detail="Submissions for user not found")
     return db_submissions
 
 @app.get("/submissions/challenge/{challenge_id}", tags=["Submissions"])
